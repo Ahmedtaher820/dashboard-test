@@ -1,5 +1,5 @@
 <template>
-  <v-sheet border rounded>
+  <v-sheet border rounded class="me-0 pa-3">
     <div>
       <v-text-field
         v-model="search"
@@ -23,7 +23,7 @@
               start
             />
 
-            Projects
+            Spaces
           </v-toolbar-title>
 
           <v-spacer />

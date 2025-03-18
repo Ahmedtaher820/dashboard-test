@@ -1,137 +1,101 @@
 <template>
-  <v-sheet border rounded>
-    <div>
+    <v-sheet border rounded width="100%" class="me-0 pa-3">
       <v-text-field
         v-model="search"
         label="Search By Name"
-        class="mt-5 mx-3"
+        class="my-5 mx-3"
+        hide-details
       ></v-text-field>
-    </div>
-    <v-data-table
-      :headers="headers"
-      :hide-default-footer="projects.length < 11"
-      :items="filteredProjects"
-      class="custom-table"
-    >
-      <template v-slot:top>
-        <v-toolbar flat>
-          <v-toolbar-title>
-            <v-icon
+  
+      <v-data-table
+        :headers="headers"
+        :items="filteredProjects"
+        :hide-default-footer="projects.length < 11"
+        class="custom-table"
+        mobile-breakpoint="600"
+      >
+        <template v-slot:top>
+          <v-toolbar flat>
+            <v-toolbar-title>
+                <v-icon
               color="medium-emphasis"
               icon="mdi-book-multiple"
               size="x-small"
               start
-            ></v-icon>
-
-            Projects
-          </v-toolbar-title>
-
-          <v-spacer></v-spacer>
-
+            />              Projects
+            </v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn
+              class="me-2"
+              prepend-icon="mdi-plus"
+              rounded="lg"
+              text="Add a Project"
+              border
+              @click="add"
+            ></v-btn>
+          </v-toolbar>
+        </template>
+  
+        <template v-slot:item.status="{ value }">
+          <v-chip :color="getStatusColor(value)" class="text-white">
+            {{ value }}
+          </v-chip>
+        </template>
+  
+        <template v-slot:item.actions="{ item }">
+          <div class="d-flex ga-2 justify-end">
+            <v-icon color="medium-emphasis" icon="mdi-pencil" size="small" @click="edit(item.id)"></v-icon>
+          </div>
+        </template>
+  
+        <template v-slot:no-data>
           <v-btn
-            class="me-2"
-            prepend-icon="mdi-plus"
+            prepend-icon="mdi-backup-restore"
             rounded="lg"
-            text="Add a Project"
+            text="Reset data"
+            variant="text"
             border
-            @click="add"
+            @click="reset"
           ></v-btn>
-        </v-toolbar>
-      </template>
-
-      <template v-slot:item.status="{ value }">
-        <v-chip :color="getStatusColor(value)" class="text-white">
-          {{ value }}
-        </v-chip>
-      </template>
-
-      <template v-slot:item.actions="{ item }">
-        <div class="d-flex ga-2 justify-end">
-          <v-icon
-            color="medium-emphasis"
-            icon="mdi-pencil"
-            size="small"
-            @click="edit(item.id)"
-          ></v-icon>
-
-          <!-- <v-icon
-            color="medium-emphasis"
-            icon="mdi-delete"
-            size="small"
-            @click="remove(item.id)"
-          ></v-icon> -->
-        </div>
-      </template>
-
-      <template v-slot:no-data>
-        <v-btn
-          prepend-icon="mdi-backup-restore"
-          rounded="lg"
-          text="Reset data"
-          variant="text"
-          border
-          @click="reset"
-        ></v-btn>
-      </template>
-    </v-data-table>
-  </v-sheet>
-
-  <v-dialog v-model="dialog" max-width="500">
-    <v-card
-      :subtitle="`${isEditing ? 'Update' : 'Create'} your favorite project`"
-      :title="`${isEditing ? 'Edit' : 'Add'} a Project`"
-    >
-      <template v-slot:text>
+        </template>
+      </v-data-table>
+    </v-sheet>
+  
+    <v-dialog v-model="dialog" max-width="500">
+      <v-card :title="isEditing ? 'Edit a Project' : 'Add a Project'">
         <v-form ref="form">
-          <v-row>
-            <v-col cols="12">
-              <v-text-field
-                v-model="record.name"
-                label="Name"
-                :rules="nameRules"
-                required
-              ></v-text-field>
-            </v-col>
-
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="record.location"
-                label="Location"
-                :rules="locationRules"
-                required
-              ></v-text-field>
-            </v-col>
-
-            <v-col cols="12" md="6">
-              <v-select
-                v-model="record.status"
-                :items="['Pending', 'Complete', 'Canceled']"
-                label="Status"
-              ></v-select>
-            </v-col>
-
-            <v-col cols="12" md="12">
-              <v-text-field
-                v-model="record.description"
-                label="Description"
-              ></v-text-field>
-            </v-col>
-          </v-row>
+          <v-container>
+            <v-row>
+              <v-col cols="12">
+                <v-text-field v-model="record.name" label="Name" :rules="nameRules" required></v-text-field>
+              </v-col>
+  
+              <v-col cols="12" sm="6">
+                <v-text-field v-model="record.location" label="Location" :rules="locationRules" required></v-text-field>
+              </v-col>
+  
+              <v-col cols="12" sm="6">
+                <v-select v-model="record.status" :items="['Pending', 'Complete', 'Canceled']" label="Status"></v-select>
+              </v-col>
+  
+              <v-col cols="12">
+                <v-textarea v-model="record.description" label="Description"></v-textarea>
+              </v-col>
+            </v-row>
+          </v-container>
         </v-form>
-      </template>
-
-      <v-divider></v-divider>
-
-      <v-card-actions class="bg-surface-light">
-        <v-btn text="Cancel" variant="plain" @click="dialog = false"></v-btn>
-
-        <v-spacer></v-spacer>
-
-        <v-btn text="Save" @click="save"></v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-</template>
+  
+        <v-divider></v-divider>
+  
+        <v-card-actions class="bg-surface-light">
+          <v-btn text="Cancel" variant="plain" @click="dialog = false"></v-btn>
+          <v-spacer></v-spacer>
+          <v-btn text="Save" @click="save"></v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </template>
+  
 <script setup>
 import { watch } from "vue";
 import { onMounted, ref, shallowRef } from "vue";
@@ -301,5 +265,7 @@ const getStatusColor = (status) => {
 .custom-table {
   height: 100%;
   max-height: 100vh;
+  overflow-x: auto;
+
 }
 </style>
