@@ -13,7 +13,6 @@
       :items="filteredProjects"
       class="custom-table"
     >
-    
       <template v-slot:top>
         <v-toolbar flat>
           <v-toolbar-title>
@@ -41,10 +40,7 @@
       </template>
 
       <template v-slot:item.status="{ value }">
-        <v-chip
-          :color="getStatusColor(value)"
-          class="text-white"
-        >
+        <v-chip :color="getStatusColor(value)" class="text-white">
           {{ value }}
         </v-chip>
       </template>
@@ -86,33 +82,42 @@
       :title="`${isEditing ? 'Edit' : 'Add'} a Project`"
     >
       <template v-slot:text>
-        <v-row>
-          <v-col cols="12">
-            <v-text-field v-model="record.name" label="Name"></v-text-field>
-          </v-col>
+        <v-form ref="form">
+          <v-row>
+            <v-col cols="12">
+              <v-text-field
+                v-model="record.name"
+                label="Name"
+                :rules="nameRules"
+                required
+              ></v-text-field>
+            </v-col>
 
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="record.location"
-              label="Location"
-            ></v-text-field>
-          </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="record.location"
+                label="Location"
+                :rules="locationRules"
+                required
+              ></v-text-field>
+            </v-col>
 
-          <v-col cols="12" md="6">
-            <v-select
-              v-model="record.status"
-              :items="['Pending', 'Accepted', 'canceled']"
-              label="Status"
-            ></v-select>
-          </v-col>
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="record.status"
+                :items="['Pending', 'Complete', 'Canceled']"
+                label="Status"
+              ></v-select>
+            </v-col>
 
-          <v-col cols="12" md="12">
-            <v-text-field
-              v-model="record.description"
-              label="Description"
-            ></v-text-field>
-          </v-col>
-        </v-row>
+            <v-col cols="12" md="12">
+              <v-text-field
+                v-model="record.description"
+                label="Description"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+        </v-form>
       </template>
 
       <v-divider></v-divider>
@@ -135,9 +140,13 @@ const DEFAULT_RECORD = {
   name: "",
   location: "",
   description: "",
-  status: 1,
+  status: "Pending",
 };
-
+const nameRules = [
+  (v) => !!v || "Name is required",
+  (v) => (v && v.length >= 3) || "Name must be at least 3 characters",
+];
+const locationRules = [(v) => !!v || "Location is required"];
 const projects = ref([
   {
     id: 1,
@@ -216,20 +225,35 @@ watch(search, (newSearch) => {
   }
 });
 
+const form = ref(null);
 
-function save() {
-  if (isEditing.value) {
-    const index = filteredProjects.value.findIndex(
-      (book) => book.id === record.value.id
-    );
-    filteredProjects.value[index] = record.value;
+const save = async () => {
+  if (!form.value) return; // Ensure formRef is available
+
+  // Reset validation to clear previous errors
+  form.value.resetValidation();
+
+  // Validate the form and check result
+  let isValid;
+   await form.value.validate().then((res)=>{
+    isValid = res.valid 
+  })
+  if (isValid) {
+    if (isEditing.value) {
+      const index = filteredProjects.value.findIndex(
+        (book) => book.id === record.value.id
+      );
+      filteredProjects.value[index] = record.value;
+    } else {
+      record.value.id = filteredProjects.value.length + 1;
+      filteredProjects.value.push(record.value);
+    }
+
+    dialog.value = false;
   } else {
-    record.value.id = filteredProjects.value.length + 1;
-    filteredProjects.value.push(record.value);
+    return;
   }
-
-  dialog.value = false;
-}
+};
 
 function reset() {
   dialog.value = false;

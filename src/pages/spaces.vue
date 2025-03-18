@@ -89,23 +89,35 @@
       :title="`${isEditing ? 'Edit' : 'Add'} a Space`"
     >
       <template #text>
-        <v-row>
-          <v-col cols="12">
-            <v-text-field v-model="record.name" label="Name" :rules="[]" />
-          </v-col>
+        <v-form ref="form">
+          <v-row>
+            <v-col cols="12">
+              <v-text-field
+                v-model="record.name"
+                label="Name"
+                :rules="nameRules"
+                required
+              />
+            </v-col>
 
-          <v-col cols="12" md="6">
-            <v-text-field v-model="record.area" label="Area" />
-          </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="record.area"
+                label="Area"
+                :rules="areaRules"
+                required
+              />
+            </v-col>
 
-          <v-col cols="12" md="6">
-            <v-select
-              v-model="record.level"
-              :items="['First Level', 'Second Level', 'Third Level']"
-              label="Level"
-            />
-          </v-col>
-        </v-row>
+            <v-col cols="12" md="6">
+              <v-select
+                v-model="record.level"
+                :items="['First Level', 'Second Level', 'Third Level']"
+                label="Level"
+              />
+            </v-col>
+          </v-row>
+        </v-form>
       </template>
 
       <v-divider />
@@ -125,9 +137,14 @@ import { onMounted, ref, shallowRef } from "vue";
 const DEFAULT_RECORD = {
   name: "",
   area: "",
-  level: "",
+  level: "First Level",
 };
 
+const areaRules = [(v) => !!v || "Area is required"];
+const nameRules = [
+  (v) => !!v || "Name is required",
+  (v) => (v && v.length >= 3) || "Name must be at least 3 characters",
+];
 const spaces = ref([
   {
     id: 1,
@@ -165,7 +182,13 @@ onMounted(() => {
 
 function add() {
   isEditing.value = false;
-  record.value = DEFAULT_RECORD;
+  record.value = {
+    name: "",
+    area: "",
+    level: "First Level",
+  };
+  console.log(record.value);
+
   dialog.value = true;
 }
 const search = ref("");
@@ -199,18 +222,35 @@ function remove(id) {
   const index = filteredSpaces.value.findIndex((book) => book.id === id);
   filteredSpaces.value.splice(index, 1);
 }
+const form = ref(null);
 
-function save() {
-  if (isEditing.value) {
-    const index = filteredSpaces.value.findIndex((book) => book.id === record.value.id);
-    filteredSpaces.value[index] = record.value;
+const save = async () => {
+  if (!form.value) return; // Ensure formRef is available
+
+  // Reset validation to clear previous errors
+  form.value.resetValidation();
+
+  // Validate the form and check result
+  let isValid;
+  await form.value.validate().then((res) => {
+    isValid = res.valid;
+  });
+  if (isValid) {
+    if (isEditing.value) {
+      const index = filteredSpaces.value.findIndex(
+        (book) => book.id === record.value.id
+      );
+      filteredSpaces.value[index] = record.value;
+    } else {
+      record.value.id = filteredSpaces.value.length + 1;
+      filteredSpaces.value.push(record.value);
+    }
+
+    dialog.value = false;
   } else {
-    record.value.id = filteredSpaces.value.length + 1;
-    filteredSpaces.value.push(record.value);
+    return;
   }
-
-  dialog.value = false;
-}
+};
 
 function reset() {
   dialog.value = false;
